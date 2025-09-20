@@ -13,7 +13,8 @@ Frontend repo here → https://github.com/preete126/phishGuard
 Backend repo here → https://github.com/malikez/PhishGuard
 
 ## Project Structure
-'''
+
+```text
 PhishGuard/
 │
 ├── PhishGuard backend/               # Python-based Flask backend
@@ -22,11 +23,10 @@ PhishGuard/
 │   ├── model/
 │   └── requirements.txt   # List of Python dependencies
 │
-└── phisguard/             # Frontend built with Vue.js
+└── PhishGuard frontend/              # Frontend built with Vue.js
     ├── src/
     ├── public/
     └── package.json
-'''
 
 ## Getting Started
 
