@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Phishing URL Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 400px;
+            padding: 8px;
+        }
+        button {
+            padding: 8px 16px;
+        }
+        img {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            max-width: 100%;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Phishing URL Analyzer</h1>
+    <form method="POST">
+        <label for="url">Enter URL to analyze:</label><br><br>
+        <input type="text" id="url" name="url" placeholder="https://example.com" required>
+        <button type="submit">Analyze</button>
+    </form>
+
+    {% if report %}
+        <h2>Analysis for: {{ url }}</h2>
+
+        <h3>Prediction:</h3>
+        {% if report['prediction'].get('error') %}
+            <p>Error: {{ report['prediction']['error'] }}</p>
+        {% else %}
+            <p>Label: {{ report['prediction']['label'] }}</p>
+        {% endif %}
+
+        <h3>Final Risk Score: {{ report['score'] }} / 10</h3>
+        <h3>Risk Level: {{ report['risk_level'] }}</h3>
+
+        <h3>SSL Information:</h3>
+{% if report['ssl_info'].get('details') %}
+    <ul>
+        <li><strong>Subject:</strong>
+            <ul>
+                {% for key, value in report['ssl_info']['details'].subject.items() %}
+                    <li>{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </li>
+        <li><strong>Issuer:</strong>
+            <ul>
+                {% for key, value in report['ssl_info']['details'].issuer.items() %}
+                    <li>{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </li>
+        <li><strong>Serial Number:</strong> {{ report['ssl_info']['details'].serialNumber }}</li>
+        <li><strong>Version:</strong> {{ report['ssl_info']['details'].version }}</li>
+        <li><strong>Valid From:</strong> {{ report['ssl_info']['details'].notBefore }}</li>
+        <li><strong>Valid Until:</strong> {{ report['ssl_info']['details'].notAfter }}</li>
+    </ul>
+{% else %}
+    <p>No SSL certificate found or SSL check failed. {{ report['ssl_info']['message'] }}</p>
+{% endif %}
+
+
+        <h3>Domain Age:</h3>
+        <p>Age (days): {{ report['domain_age'].get('age', 'Unknown') }}</p>
+        {% if report['domain_age'].get('error') %}
+            <p>Error: {{ report['domain_age']['error'] }}</p>
+        {% endif %}
+
+        <h3>Hashes:</h3>
+        <p>MD5: {{ report['hashes']['md5'] }}</p>
+        <p>SHA-256: {{ report['hashes']['sha256'] }}</p>
+
+        {% if report['screenshot'].get('screenshot_base64') %}
+            <h3>Website Screenshot:</h3>
+            <img src="data:image/png;base64,{{ report['screenshot']['screenshot_base64'] }}" alt="Website Screenshot">
+        {% elif report['screenshot'].get('error') %}
+            <p>Screenshot Error: {{ report['screenshot']['error'] }}</p>
+        {% endif %}
+
+        <h3>Score Details:</h3>
+        <ul>
+            {% for reason in report['reasons'] %}
+                <li>{{ reason }}</li>
+            {% endfor %}
+        </ul>
+
+        <h3>Good Traits:</h3>
+        <ul>
+            {% for trait in report['good_traits'] %}
+                <li>{{ trait }}</li>
+            {% endfor %}
+        </ul>
+
+        <h3>Bad Traits:</h3>
+        <ul>
+            {% for trait in report['bad_traits'] %}
+                <li>{{ trait }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>

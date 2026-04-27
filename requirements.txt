@@ -1,0 +1,8 @@
+flask
+flask_cors
+requests
+beautifulsoup4
+numpy
+python-whois
+joblib
+gunicorn

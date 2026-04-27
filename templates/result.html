@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analysis Result</title>
+</head>
+<body>
+    <h1>Analysis for: {{ url }}</h1>
+    <h2>Classification: {{ report['classification'] }}</h2>
+    <p>Total Score: {{ report['total_score'] }}</p>
+    <h3>Reasons:</h3>
+    <ul>
+        {% for reason in report['reasons'] %}
+            <li>{{ reason }}</li>
+        {% endfor %}
+    </ul>
+
+    {% if report['screenshot'].get('screenshot_url') %}
+        <h3>Screenshot:</h3>
+        <img src="{{ report['screenshot']['screenshot_url'] }}" alt="Website Screenshot" width="600">
+    {% endif %}
+
+    <h3>Hashes:</h3>
+    <p>MD5: {{ report['hashes']['md5'] }}</p>
+    <p>SHA-256: {{ report['hashes']['sha256'] }}</p>
+    <a href="/">Analyze another URL</a>
+</body>
+</html>
