@@ -62,34 +62,48 @@ def extract_ssl_info(url):
     return ssl_data
 
 
-
 def get_domain_age(url):
     """
-    This function retrieves the age of a domain from its WHOIS information.
+    This function retrieves the age of a domain from its WHOIS information via an HTTP API.
     Returns a dictionary with the domain age and status message.
     """
     from datetime import datetime
-    import whois
+    import requests
 
     age_info = {'age': 0, 'message': None}
 
     try:
+        # Extract the hostname
         domain = url.replace('https://', '').replace('http://', '').split('/')[0]
-        w = whois.whois(domain)
-        creation_date = w.creation_date
 
-        if isinstance(creation_date, list):
-            creation_date = creation_date[0]
+        # Use a free REST API to fetch WHOIS data over standard HTTPS (Port 443)
+        # This completely bypasses the Google Cloud Port 43 outbound block
+        api_url = f"https://networkcalc.com/api/dns/whois/{domain}"
+        response = requests.get(api_url, timeout=10)
 
-        if creation_date:
-            age = (datetime.utcnow() - creation_date).days
-            age_info['age'] = age
-            age_info['message'] = f'Domain age is {age} days.'
+        if response.status_code == 200:
+            data = response.json()
+
+            # Safely check if 'status' is OK and 'creation_date' exists
+            whois_data = data.get('whois') or {}
+            creation_str = whois_data.get('creation_date')
+
+            if data.get('status') == 'OK' and creation_str:
+                # The API returns dates as ISO strings (e.g., "1997-09-15T04:00:00.000Z")
+                # We slice the first 10 characters to just get "YYYY-MM-DD"
+                creation_date = datetime.strptime(creation_str[:10], "%Y-%m-%d")
+
+                age = (datetime.utcnow() - creation_date).days
+                age_info['age'] = age
+                age_info['message'] = f'Domain age is {age} days.'
+            else:
+                age_info['message'] = 'Domain creation date not found (age set to 0).'
         else:
-            age_info['message'] = 'Domain creation date not found (age set to 0).'
-    except Exception:
+            age_info['message'] = f'API request failed (status {response.status_code}).'
+
+    except Exception as e:
         age_info['age'] = 0
-        age_info['message'] = 'Domain age can’t be determined (invalid or unavailable WHOIS data).'
+        age_info['message'] = f'Domain age can’t be determined ({str(e)}).'
 
     return age_info
 
