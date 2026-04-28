@@ -64,11 +64,11 @@ def extract_ssl_info(url):
 
 def get_domain_age(url):
     """
-    This function retrieves the age of a domain using RDAP (Registration Data Access Protocol).
-    RDAP is the modern, HTTPS-native replacement for WHOIS.
+    Retrieves true domain age using the API Ninjas WHOIS proxy to bypass Cloud IP blocks.
     """
     from datetime import datetime
     import requests
+    import os
 
     age_info = {'age': 0, 'message': None}
 
@@ -76,38 +76,33 @@ def get_domain_age(url):
         # Extract the clean hostname
         domain = url.replace('https://', '').replace('http://', '').split('/')[0]
 
-        # Query the official RDAP bootstrap server
-        api_url = f"https://rdap.org/domain/{domain}"
+        # Query the API Ninjas proxy
+        api_url = f"https://api.api-ninjas.com/v1/whois?domain={domain}"
 
-        # Mask the script as a standard web browser to bypass basic bot blocks
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
+        # Fetch the key from Cloud Run environment variables
+        api_key = os.environ.get("WHOIS_API_KEY")
 
+        headers = {'X-Api-Key': api_key}
         response = requests.get(api_url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             data = response.json()
-            creation_str = None
+            creation_timestamp = data.get('creation_date')
 
-            # RDAP standardizes data into an 'events' list. We search for the registration event.
-            for event in data.get('events', []):
-                if event.get('eventAction') == 'registration':
-                    creation_str = event.get('eventDate')
-                    break
+            if creation_timestamp:
+                # API Ninjas returns a UNIX timestamp (e.g., 874303200)
+                if isinstance(creation_timestamp, list):
+                    creation_timestamp = creation_timestamp[0]
 
-            if creation_str:
-                # RDAP dates are formatted like "1997-09-15T04:00:00Z"
-                # Slice the first 10 characters to extract just "YYYY-MM-DD"
-                creation_date = datetime.strptime(creation_str[:10], "%Y-%m-%d")
-
+                creation_date = datetime.utcfromtimestamp(creation_timestamp)
                 age = (datetime.utcnow() - creation_date).days
+
                 age_info['age'] = age
                 age_info['message'] = f'Domain age is {age} days.'
             else:
-                age_info['message'] = 'Domain registration date missing from RDAP record.'
+                age_info['message'] = 'Domain creation date not found in WHOIS record.'
         else:
-            age_info['message'] = f'RDAP lookup failed (HTTP {response.status_code}).'
+            age_info['message'] = f'WHOIS Proxy failed (HTTP {response.status_code}).'
 
     except Exception as e:
         age_info['age'] = 0

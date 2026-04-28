@@ -35,4 +35,4 @@ jobs:
           --source . \
           --region ${{ env.REGION }} \
           --allow-unauthenticated \
-          --set-env-vars APIFLASH_KEY=${{ secrets.APIFLASH_KEY }}
+          --set-env-vars APIFLASH_KEY=${{ secrets.APIFLASH_KEY }},WHOIS_API_KEY=${{ secrets.WHOIS_API_KEY }}
