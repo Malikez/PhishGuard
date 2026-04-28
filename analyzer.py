@@ -64,8 +64,8 @@ def extract_ssl_info(url):
 
 def get_domain_age(url):
     """
-    This function retrieves the age of a domain from its WHOIS information via an HTTP API.
-    Returns a dictionary with the domain age and status message.
+    This function retrieves the age of a domain using RDAP (Registration Data Access Protocol).
+    RDAP is the modern, HTTPS-native replacement for WHOIS.
     """
     from datetime import datetime
     import requests
@@ -73,37 +73,45 @@ def get_domain_age(url):
     age_info = {'age': 0, 'message': None}
 
     try:
-        # Extract the hostname
+        # Extract the clean hostname
         domain = url.replace('https://', '').replace('http://', '').split('/')[0]
 
-        # Use a free REST API to fetch WHOIS data over standard HTTPS (Port 443)
-        # This completely bypasses the Google Cloud Port 43 outbound block
-        api_url = f"https://networkcalc.com/api/dns/whois/{domain}"
-        response = requests.get(api_url, timeout=10)
+        # Query the official RDAP bootstrap server
+        api_url = f"https://rdap.org/domain/{domain}"
+
+        # Mask the script as a standard web browser to bypass basic bot blocks
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+
+        response = requests.get(api_url, headers=headers, timeout=10)
 
         if response.status_code == 200:
             data = response.json()
+            creation_str = None
 
-            # Safely check if 'status' is OK and 'creation_date' exists
-            whois_data = data.get('whois') or {}
-            creation_str = whois_data.get('creation_date')
+            # RDAP standardizes data into an 'events' list. We search for the registration event.
+            for event in data.get('events', []):
+                if event.get('eventAction') == 'registration':
+                    creation_str = event.get('eventDate')
+                    break
 
-            if data.get('status') == 'OK' and creation_str:
-                # The API returns dates as ISO strings (e.g., "1997-09-15T04:00:00.000Z")
-                # We slice the first 10 characters to just get "YYYY-MM-DD"
+            if creation_str:
+                # RDAP dates are formatted like "1997-09-15T04:00:00Z"
+                # Slice the first 10 characters to extract just "YYYY-MM-DD"
                 creation_date = datetime.strptime(creation_str[:10], "%Y-%m-%d")
 
                 age = (datetime.utcnow() - creation_date).days
                 age_info['age'] = age
                 age_info['message'] = f'Domain age is {age} days.'
             else:
-                age_info['message'] = 'Domain creation date not found (age set to 0).'
+                age_info['message'] = 'Domain registration date missing from RDAP record.'
         else:
-            age_info['message'] = f'API request failed (status {response.status_code}).'
+            age_info['message'] = f'RDAP lookup failed (HTTP {response.status_code}).'
 
     except Exception as e:
         age_info['age'] = 0
-        age_info['message'] = f'Domain age can’t be determined ({str(e)}).'
+        age_info['message'] = f'Domain age could not be determined ({str(e)}).'
 
     return age_info
 
