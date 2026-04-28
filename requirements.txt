@@ -7,14 +7,3 @@ python-whois
 joblib
 gunicorn
 scikit-learn
-whois
-base64
-io
-ssl
-socket
-hashlib
-datetime
-re
-urllib
-bs4
-collections
