@@ -7,3 +7,4 @@ python-whois
 joblib
 gunicorn
 scikit-learn
+pandas
