@@ -4,6 +4,9 @@ FROM python:3.10-slim
 # Set the working directory
 WORKDIR /app
 
+# Install the system whois utility
+RUN apt-get update && apt-get install -y whois && rm -rf /var/lib/apt/lists/*
+
 # Copy the local code to the container
 COPY . ./
 
